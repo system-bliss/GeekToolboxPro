@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Toolbox Pro</title>
+    <!-- [离线化] 本地 CSS -->
+    <link rel="stylesheet" href="/static/lib/element-plus.css" />
+    
+    <style>
+        :root {
+            --mac-bg: #f0f2f5; --mac-card-bg: rgba(255, 255, 255, 0.95);
+            --mac-primary: #007aff; --mac-success: #34c759; --mac-warning: #ff9f0a; --mac-danger: #ff3b30;
+            --mac-text: #1d1d1f; --mac-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            --el-color-primary: var(--mac-primary); --el-border-radius-base: 8px;
+        }
+        body { margin: 0; background: var(--mac-bg); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif; color: var(--mac-text); -webkit-font-smoothing: antialiased; height: 100vh; overflow: hidden; }
+        .app-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; height: calc(100vh - 80px); }
+        .main-window { background: var(--mac-card-bg); border-radius: 16px; box-shadow: var(--mac-shadow); overflow: hidden; border: 1px solid rgba(0,0,0,0.05); height: 100%; display: flex; flex-direction: column; }
+        .window-bar { height: 44px; background: linear-gradient(to bottom, #f9f9fa, #f1f1f2); border-bottom: 1px solid #dcdcdc; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; }
+        .dots { display: flex; gap: 8px; } .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.red { background: #ff5f56; border: 1px solid #e0443e; } .dot.yellow { background: #ffbd2e; border: 1px solid #dea123; } .dot.green { background: #27c93f; border: 1px solid #1aab29; }
+        .app-title { flex: 1; text-align: center; font-weight: 600; font-size: 14px; color: #333; user-select: none;}
+        .el-tabs__nav-wrap::after { display: none; }
+        .el-tabs__header { margin: 0 !important; padding: 0 20px; border-bottom: 1px solid #eee; background: rgba(255,255,255,0.8); }
+        .el-tabs__item { font-size: 15px; height: 50px; line-height: 50px; }
+        .tool-tabs .el-tabs__header { width: 200px; background: #f5f5f7; border-right: 1px solid #eee; padding: 20px 0; }
+        .tool-tabs .el-tabs__item.is-active { background: #e5e5ea; color: #000; border-radius: 6px; margin: 0 10px; }
+        .tool-tabs .el-tabs__item { text-align: left; margin: 0 10px; justify-content: flex-start; }
+        .tool-tabs .el-tabs__content { height: 100%; } .tool-tabs .el-tab-pane { height: 100%; }
+        .pane-content { padding: 24px; height: 100%; box-sizing: border-box; overflow-y: auto; }
+        .todo-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; border: 1px solid #eee; transition: all 0.2s; position: relative; }
+        .todo-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .todo-card.done { background: #f9f9f9; border-left: 4px solid var(--mac-success); }
+        .todo-card.pending { border-left: 4px solid var(--mac-warning); }
+        .todo-meta { font-size: 12px; color: #999; margin-top: 8px; display: flex; gap: 15px; align-items: center; }
+        .todo-content { font-size: 15px; line-height: 1.6; }
+        .done .todo-content { text-decoration: line-through; color: #aaa; }
+        .output-wrapper { position: relative; margin-top: 15px; }
+        .output-box { background: #282c34; color: #abb2bf; padding: 15px; border-radius: 8px; font-family: 'Menlo', 'Monaco', monospace; font-size: 13px; min-height: 60px; white-space: pre-wrap; line-height: 1.5; word-break: break-all; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .copy-btn:hover { background: rgba(255,255,255,0.3); }
+        .markdown-body p { margin: 0; }
+        /* JSON Layout */
+        .split-container { display: flex; flex: 1; min-height: 0; gap: 10px; overflow: hidden; position: relative; margin-top: 10px; }
+        .panel-col { display: flex; flex-direction: column; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1); overflow: hidden; border: 1px solid #eee; border-radius: 8px; background: #fff; }
+        .panel-expanded { flex: 1; min-width: 300px; }
+        .panel-collapsed { flex: 0 0 40px; min-width: 0; }
+        .panel-header { height: 40px; background: #f5f7fa; border-bottom: 1px solid #eee; display: flex; align-items: center; padding: 0 10px; white-space: nowrap; justify-content: space-between; flex-shrink: 0; user-select: none; }
+        .panel-collapsed .panel-header { justify-content: center; padding: 0; background: #eef1f6; cursor: pointer; }
+        .panel-collapsed .panel-header:hover { background: #e0e5eb; }
+        .header-actions { display: flex; gap: 8px; align-items: center; overflow: hidden; }
+        .panel-body { flex: 1; overflow: auto; position: relative; display: flex; flex-direction: column; }
+        /* JSON Tree */
+        .json-tree { font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; line-height: 1.6; color: #333; }
+        .jv-node { display: inline; } 
+        .jv-children { display: block; padding-left: 20px; border-left: 1px dashed #e0e0e0; margin-left: 4px; }
+        .jv-line { display: block; } 
+        .jv-key { color: #986801; margin-right: 4px; } .jv-string { color: #50a14f; word-break: break-all; }
+        .jv-number { color: #a626a4; } .jv-boolean { color: #e45649; } .jv-null { color: #a0a1a7; }
+        .jv-toggle { cursor: pointer; display: inline-block; width: 14px; text-align: center; color: #999; user-select: none; margin-right: 2px; }
+        .jv-toggle:hover { color: var(--mac-primary); }
+        .jv-highlight { background-color: #ffe79e; border-radius: 2px; box-shadow: 0 0 0 1px #ffe79e; }
+        .jv-ellipsis { color: #999; cursor: pointer; background: #eee; padding: 0 4px; border-radius: 2px; font-size: 12px;}
+        /* Hash Uploader */
+        .hash-uploader .el-upload { width: 100%; } .hash-uploader .el-upload-dragger { width: 100%; background: #fafafa; }
+    </style>
+    
+    <!-- [离线化] 本地 Marked 解析库 -->
+    <script src="/static/lib/marked.js"></script>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <div class="main-window">
+            <div class="window-bar">
+                <div class="dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                <div class="app-title">Work Toolbox Pro</div>
+                <div style="width: 50px"></div>
+            </div>
+
+            <el-tabs v-model="activeTab" style="height: 100%; display: flex; flex-direction: column;">
+                
+                <!-- Todo List -->
+                <el-tab-pane name="todo" label="待办清单">
+                    <div class="pane-content">
+                        <el-row :gutter="20">
+                            <el-col :span="8">
+                                <el-card shadow="never" header="新建任务">
+                                    <el-input v-model="newTodo" type="textarea" :rows="6" placeholder="支持 Markdown 语法 (如: # 标题, **加粗**)"></el-input>
+                                    <el-button type="primary" style="width: 100%; margin-top: 15px;" @click="addTodo">添加任务</el-button>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="16">
+                                <el-scrollbar height="100%">
+                                    <div v-for="item in todoList" :key="item.id" :class="['todo-card', item.status ? 'done' : 'pending']">
+                                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                                            <div style="display: flex; gap: 10px; flex: 1;">
+                                                <el-checkbox v-model="item.status" :true-label="1" :false-label="0" @change="updateTodo(item)" size="large"></el-checkbox>
+                                                <div style="flex: 1;">
+                                                    <div v-html="renderMarkdown(item.content)" class="todo-content markdown-body"></div>
+                                                    <div class="todo-meta">
+                                                        <span v-if="item.status === 1" style="color: var(--mac-success);">
+                                                            <el-icon><Check /></el-icon> 完成: {{ formatTime(item.completed_at) }}
+                                                        </span>
+                                                        <span v-else-if="item.updated_at && item.updated_at !== item.created_at" style="color: var(--mac-warning);">
+                                                            <el-icon><Edit /></el-icon> 更新: {{ formatTime(item.updated_at) }}
+                                                        </span>
+                                                        <span v-else>
+                                                            <el-icon><Clock /></el-icon> 创建: {{ formatTime(item.created_at) }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <el-button type="danger" icon="Delete" circle text @click="deleteTodo(item.id)"></el-button>
+                                        </div>
+                                    </div>
+                                </el-scrollbar>
+                            </el-col>
+                        </el-row>
+                    </div>
+                </el-tab-pane>
+
+                <!-- Password Vault -->
+                <el-tab-pane name="pwd" label="密码保险柜">
+                    <div class="pane-content">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                            <el-input v-model="pwdSearch" placeholder="搜索标题、标签..." style="width: 300px;" prefix-icon="Search" clearable></el-input>
+                            <el-button type="primary" @click="pwdDialogVisible = true" icon="Plus">新增记录</el-button>
+                        </div>
+                        <el-table :data="filteredPwdList" border stripe style="width: 100%; border-radius: 8px; overflow: hidden;">
+                            <el-table-column prop="title" label="标题 / 应用" width="180"></el-table-column>
+                            <el-table-column prop="account" label="账号 / 用户名" width="180"></el-table-column>
+                            <el-table-column label="密码">
+                                <template #default="{row}">
+                                    <span v-if="!row.show">••••••</span>
+                                    <span v-else style="font-family:monospace">{{ row.password }}</span>
+                                    <el-button link type="primary" size="small" @click="row.show = !row.show">{{ row.show ? '隐藏' : '查看' }}</el-button>
+                                    <el-button link size="small" @click="copyText(row.password)" icon="CopyDocument"></el-button>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="标签" width="200">
+                                <template #default="{row}">
+                                    <div v-if="row.tags">
+                                        <el-tag v-for="tag in row.tags.split(/[,，]/)" :key="tag" size="small" style="margin-right:5px; margin-bottom:2px;">{{ tag.trim() }}</el-tag>
+                                    </div>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="url" label="URL">
+                                <template #default="{row}">
+                                    <el-link :href="row.url" target="_blank" type="primary">{{ row.url }}</el-link>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="60" align="center">
+                                <template #default="{row}">
+                                    <el-button type="danger" icon="Delete" circle text @click="deletePwd(row.id)"></el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-tab-pane>
+
+                <!-- Tools -->
+                <el-tab-pane name="tools" label="开发者工具" style="height: 100%;">
+                    <el-tabs tab-position="left" class="tool-tabs" style="height: 100%;">
+                        
+                        <el-tab-pane label="Curl 转 Python">
+                            <div class="pane-content">
+                                <h3>Curl 命令转换为 Python Requests</h3>
+                                <p style="font-size:12px; color:#999; margin-bottom:10px;">支持 Chrome/Firefox 复制的 Curl 命令，自动处理 B站等复杂 Cookie</p>
+                                <el-input v-model="toolInputs.curl" type="textarea" :rows="8" placeholder="请粘贴以 'curl' 开头的命令..." spellcheck="false"></el-input>
+                                <el-button type="primary" style="margin: 15px 0;" @click="runTool('curl2py', toolInputs.curl)">开始转换</el-button>
+                                <div class="output-wrapper" v-if="toolOutputs.curl" id="curl-output">
+                                    <div class="output-box">{{ toolOutputs.curl }}</div>
+                                    <button class="copy-btn" @click="copyText(toolOutputs.curl)">复制</button>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="JSON 格式化">
+                            <div class="pane-content" style="display: flex; flex-direction: column; height: 100%; padding: 0 20px 20px 20px; overflow: hidden;">
+                                <el-alert title="支持标准 JSON 和 Python Dict (如 {'a': True, 'b': None})" type="info" show-icon :closable="false" style="margin-bottom: 10px; flex-shrink: 0;"></el-alert>
+                                <div class="split-container">
+                                    <!-- Left Input -->
+                                    <div :class="['panel-col', isInputCollapsed ? 'panel-collapsed' : 'panel-expanded']">
+                                        <div class="panel-header" @click="isInputCollapsed ? isInputCollapsed = false : null" :title="isInputCollapsed ? '点击展开输入框' : ''">
+                                            <div class="header-actions" v-show="!isInputCollapsed">
+                                                <el-button type="primary" size="small" icon="MagicStick" @click="processJson">格式化</el-button>
+                                                <el-button size="small" icon="Delete" @click="toolInputs.json=''">清空</el-button>
+                                            </div>
+                                            <div v-show="isInputCollapsed"><el-icon><ArrowRight /></el-icon></div>
+                                            <div v-show="!isInputCollapsed">
+                                                <el-tooltip content="收起输入框" placement="top">
+                                                    <el-button link icon="Fold" @click.stop="isInputCollapsed = true"></el-button>
+                                                </el-tooltip>
+                                            </div>
+                                        </div>
+                                        <div class="panel-body" v-show="!isInputCollapsed">
+                                            <el-input v-model="toolInputs.json" type="textarea" style="flex: 1; height: 100%;" :input-style="{height:'100%', border:'none', borderRadius:0, resize:'none', fontFamily:'monospace'}" placeholder="在此输入 JSON 或 Python 字典字符串..." spellcheck="false"></el-input>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right Output -->
+                                    <div :class="['panel-col', isOutputCollapsed ? 'panel-collapsed' : 'panel-expanded']">
+                                        <div class="panel-header" @click="isOutputCollapsed ? isOutputCollapsed = false : null" :title="isOutputCollapsed ? '点击展开结果' : ''">
+                                            <div v-show="isOutputCollapsed"><el-icon><ArrowLeft /></el-icon></div>
+                                            <div class="header-actions" v-show="!isOutputCollapsed" style="flex: 1;">
+                                                <div v-show="!isInputCollapsed">
+                                                    <el-tooltip content="收起结果框" placement="top">
+                                                        <el-button link icon="Expand" @click.stop="isOutputCollapsed = true" style="margin-right: 10px;"></el-button>
+                                                    </el-tooltip>
+                                                </div>
+                                                <el-input v-model="jsonSearch" placeholder="检索..." size="small" prefix-icon="Search" clearable style="width: 120px; margin-right: 10px;"></el-input>
+                                                <el-button size="small" @click="expandAll = !expandAll">{{ expandAll ? '全折叠' : '全展开' }}</el-button>
+                                            </div>
+                                            <div v-show="!isOutputCollapsed">
+                                                <el-button type="success" plain size="small" icon="CopyDocument" @click.stop="copyJsonResult">复制文本</el-button>
+                                            </div>
+                                        </div>
+                                        <div class="panel-body" v-show="!isOutputCollapsed" style="padding: 15px; background: #fff;">
+                                            <div v-if="jsonError" style="color: #ff3b30; background: #fff0f0; padding: 10px; border-radius: 4px;">
+                                                <el-icon><Warning /></el-icon> {{ jsonError }}
+                                            </div>
+                                            <div v-else-if="jsonData !== null" class="json-tree">
+                                                <json-viewer :data="jsonData" :search="jsonSearch" :expand-signal="expandAll"></json-viewer>
+                                            </div>
+                                            <div v-else style="color: #ccc; text-align: center; margin-top: 100px;">
+                                                <el-icon size="30"><Monitor /></el-icon>
+                                                <div style="margin-top:10px">点击左上角“格式化”查看结果</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="文件 Hash 计算">
+                            <div class="pane-content">
+                                <el-alert title="流式读取，支持大文件 MD5/SHA1/SHA256" type="info" show-icon :closable="false" style="margin-bottom: 20px;"></el-alert>
+                                <el-upload class="hash-uploader" drag action="" :auto-upload="false" :show-file-list="false" :on-change="handleHashFileChange">
+                                    <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                                    <div class="el-upload__text">拖拽文件到此处，或 <em>点击选择</em></div>
+                                </el-upload>
+                                <div v-if="hashFile" style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <el-icon size="24" color="#007aff"><Document /></el-icon>
+                                        <div>
+                                            <div style="font-weight: bold;">{{ hashFile.name }}</div>
+                                            <div style="font-size: 12px; color: #999;">{{ (hashFile.size / 1024 / 1024).toFixed(2) }} MB</div>
+                                        </div>
+                                    </div>
+                                    <el-button type="primary" :loading="hashLoading" @click="calcFileHash">开始计算</el-button>
+                                </div>
+                                <div v-if="hashResult" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                                    <div v-for="(val, key) in hashResult" :key="key" class="output-wrapper" style="margin-top: 0;">
+                                        <div style="font-size: 12px; color: #666; margin-bottom: 4px; font-weight: bold;">{{ key }}</div>
+                                        <div class="output-box" style="min-height: 40px; padding: 10px; display: flex; align-items: center;">{{ val }}</div>
+                                        <button class="copy-btn" @click="copyText(val)" style="top: 28px;">复制</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="时间计算器">
+                            <div class="pane-content">
+                                <h3>时间偏移计算</h3>
+                                <el-form inline>
+                                    <el-form-item label="基准时间"><el-input v-model="toolInputs.timeBase" placeholder="默认当前 (YYYY-MM-DD HH:MM:SS)" style="width: 220px;"></el-input></el-form-item>
+                                    <el-form-item label="加减天数"><el-input-number v-model="toolInputs.timeDays"></el-input-number></el-form-item>
+                                    <el-form-item label="加减小时"><el-input-number v-model="toolInputs.timeHours"></el-input-number></el-form-item>
+                                    <el-button type="primary" @click="runTimeCalc">计算</el-button>
+                                </el-form>
+                                <div class="output-wrapper" v-if="toolOutputs.time">
+                                    <div class="output-box" style="font-size: 24px; text-align: center; line-height: 60px; font-weight: bold; color: var(--mac-primary);">{{ toolOutputs.time }}</div>
+                                    <button class="copy-btn" @click="copyText(toolOutputs.time)">复制</button>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="时间戳转换">
+                            <div class="pane-content">
+                                <el-row :gutter="20">
+                                    <el-col :span="12">
+                                        <el-card shadow="hover">
+                                            <template #header>时间戳 <el-icon><Right /></el-icon> 日期</template>
+                                            <el-input v-model="toolInputs.ts1" placeholder="留空为当前时间戳" clearable>
+                                                <template #append><el-button @click="runTool('timestamp', toolInputs.ts1, 'to_date', {unit: tsUnit1}, 'ts1')">转换</el-button></template>
+                                            </el-input>
+                                            <div style="margin: 15px 0;">
+                                                <el-radio-group v-model="tsUnit1">
+                                                    <el-radio label="s">秒 (10位)</el-radio>
+                                                    <el-radio label="ms">毫秒 (13位)</el-radio>
+                                                </el-radio-group>
+                                            </div>
+                                            <div class="output-wrapper" v-if="toolOutputs.ts1">
+                                                <div class="output-box">{{ toolOutputs.ts1 }}</div>
+                                                <button class="copy-btn" @click="copyText(toolOutputs.ts1)">复制</button>
+                                            </div>
+                                        </el-card>
+                                    </el-col>
+                                    <el-col :span="12">
+                                        <el-card shadow="hover">
+                                            <template #header>日期 <el-icon><Right /></el-icon> 时间戳</template>
+                                            <el-input v-model="toolInputs.ts2" placeholder="留空为当前时间" clearable>
+                                                <template #append><el-button @click="runTool('timestamp', toolInputs.ts2, 'to_stamp', {unit: tsUnit2}, 'ts2')">转换</el-button></template>
+                                            </el-input>
+                                            <div style="margin: 15px 0;">
+                                                <el-radio-group v-model="tsUnit2">
+                                                    <el-radio label="s">转为秒</el-radio>
+                                                    <el-radio label="ms">转为毫秒</el-radio>
+                                                </el-radio-group>
+                                            </div>
+                                            <div class="output-wrapper" v-if="toolOutputs.ts2">
+                                                <div class="output-box">{{ toolOutputs.ts2 }}</div>
+                                                <button class="copy-btn" @click="copyText(toolOutputs.ts2)">复制</button>
+                                            </div>
+                                        </el-card>
+                                    </el-col>
+                                </el-row>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="编码转换">
+                            <div class="pane-content">
+                                <el-input v-model="toolInputs.enc" type="textarea" :rows="6" placeholder="输入需要处理的文本..."></el-input>
+                                <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <el-button @click="runTool('encoding', toolInputs.enc, 'base64_enc', null, 'enc')">Base64 编码</el-button>
+                                    <el-button @click="runTool('encoding', toolInputs.enc, 'base64_dec', null, 'enc')">Base64 解码</el-button>
+                                    <el-button @click="runTool('encoding', toolInputs.enc, 'url_enc', null, 'enc')">URL 编码</el-button>
+                                    <el-button @click="runTool('encoding', toolInputs.enc, 'url_dec', null, 'enc')">URL 解码</el-button>
+                                    <el-button @click="runTool('encoding', toolInputs.enc, 'uni_enc', null, 'enc')">Unicode 编码 (\u4e2d)</el-button>
+                                    <el-button @click="runTool('encoding', toolInputs.enc, 'uni_dec', null, 'enc')">Unicode 解码</el-button>
+                                </div>
+                                <div class="output-wrapper" v-if="toolOutputs.enc">
+                                    <div class="output-box">{{ toolOutputs.enc }}</div>
+                                    <button class="copy-btn" @click="copyText(toolOutputs.enc)">复制</button>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                    </el-tabs>
+                </el-tab-pane>
+            </el-tabs>
+        </div>
+
+        <!-- 弹窗：添加密码 -->
+        <el-dialog v-model="pwdDialogVisible" title="添加密码记录" width="450px" destroy-on-close>
+            <el-form :model="newPwd" label-position="top">
+                <el-form-item label="标题/应用"><el-input v-model="newPwd.title" placeholder="例如: Bilibili"></el-input></el-form-item>
+                <el-form-item label="网址 (URL)"><el-input v-model="newPwd.url" placeholder="https://..."></el-input></el-form-item>
+                <el-form-item label="账号"><el-input v-model="newPwd.account"></el-input></el-form-item>
+                <el-form-item label="密码"><el-input v-model="newPwd.password" show-password></el-input></el-form-item>
+                <el-form-item label="标签 (逗号分隔)"><el-input v-model="newPwd.tags" placeholder="工作, 娱乐"></el-input></el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="pwdDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="addPwd">保存</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <!-- [离线化] 引入本地 JS 库 -->
+    <script src="/static/lib/vue.js"></script>
+    <script src="/static/lib/element-plus.js"></script>
+    <script src="/static/lib/icons.js"></script>
+    <script src="/static/lib/axios.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, computed, watch } = Vue;
+
+        // --- 递归 JSON Viewer 组件 ---
+        const JsonViewer = {
+            name: 'JsonViewer',
+            props: ['data', 'search', 'expandSignal'],
+            setup(props) {
+                const isOpen = ref(true);
+                watch(() => props.expandSignal, (val) => { if (typeof val === 'boolean') isOpen.value = val; });
+                const highlight = (val) => {
+                    if (!props.search) return val;
+                    const s = props.search;
+                    return String(val).replace(new RegExp(`(${s})`, 'gi'), '<span class="jv-highlight">$1</span>');
+                };
+                return { isOpen, highlight };
+            },
+            template: `
+                <span class="jv-node">
+                    <span v-if="data === null" class="jv-null">null</span>
+                    <span v-else-if="typeof data === 'string'" class="jv-string" v-html="'&quot;' + highlight(data) + '&quot;'"></span>
+                    <span v-else-if="typeof data === 'number'" class="jv-number" v-html="highlight(data)"></span>
+                    <span v-else-if="typeof data === 'boolean'" class="jv-boolean">{{ data }}</span>
+                    <template v-else>
+                        <span class="jv-toggle" @click.stop="isOpen = !isOpen">{{ isOpen ? '▼' : '▶' }}</span>
+                        <span>{{ Array.isArray(data) ? '[' : '{' }}</span>
+                        <span v-if="!isOpen" class="jv-ellipsis" @click="isOpen=true">...</span>
+                        <div v-show="isOpen" class="jv-children">
+                            <div v-for="(val, key, index) in data" :key="key" class="jv-line">
+                                <span v-if="!Array.isArray(data)" class="jv-key" v-html="'&quot;' + highlight(key) + '&quot;:'"></span>
+                                <json-viewer :data="val" :search="search" :expand-signal="expandSignal"></json-viewer>
+                                <span v-if="index !== (Array.isArray(data) ? data.length - 1 : Object.keys(data).length - 1)">,</span>
+                            </div>
+                        </div>
+                        <span>{{ Array.isArray(data) ? ']' : '}' }}</span>
+                    </template>
+                </span>
+            `
+        };
+
+        const App = {
+            components: { JsonViewer },
+            setup() {
+                const activeTab = ref('todo');
+                const API_BASE = 'http://localhost:8000/api'; 
+                const tsUnit1 = ref('s');
+                const tsUnit2 = ref('s');
+
+                const copyText = async (text) => {
+                    if (!text) { ElementPlus.ElMessage.warning('内容为空'); return; }
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try { await navigator.clipboard.writeText(text); ElementPlus.ElMessage.success('复制成功'); return; } catch (err) {}
+                    }
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text; textArea.style.position = "fixed"; textArea.style.left = "-9999px";
+                    document.body.appendChild(textArea); textArea.focus(); textArea.select();
+                    try { const s = document.execCommand('copy'); if(s) ElementPlus.ElMessage.success('复制成功'); else ElementPlus.ElMessage.error('失败'); } catch (err) {}
+                    document.body.removeChild(textArea);
+                };
+                
+                const formatTime = (t) => t ? t.replace('T', ' ').substring(0, 19) : '-';
+
+                // --- Todo Logic ---
+                const todoList = ref([]);
+                const newTodo = ref('');
+                const fetchTodos = async () => { try{ todoList.value = (await axios.get(`${API_BASE}/todos`)).data; } catch(e){} };
+                const addTodo = async () => { if(newTodo.value){ await axios.post(`${API_BASE}/todos`, { content: newTodo.value }); newTodo.value = ''; fetchTodos(); } };
+                const updateTodo = async (item) => { await axios.put(`${API_BASE}/todos/${item.id}`, item); fetchTodos(); };
+                const deleteTodo = async (id) => { await axios.delete(`${API_BASE}/todos/${id}`); fetchTodos(); };
+                const renderMarkdown = (text) => marked.parse(text || '');
+
+                // --- Password Logic ---
+                const pwdList = ref([]);
+                const pwdDialogVisible = ref(false);
+                const pwdSearch = ref('');
+                const newPwd = reactive({ title: '', account: '', password: '', url: '', tags: '' });
+                const fetchPwds = async () => { try{ pwdList.value = (await axios.get(`${API_BASE}/passwords`)).data.map(i=>({...i,show:false})); } catch(e){} };
+                const filteredPwdList = computed(() => !pwdSearch.value ? pwdList.value : pwdList.value.filter(i => i.title.toLowerCase().includes(pwdSearch.value.toLowerCase()) || i.tags.includes(pwdSearch.value)));
+                const addPwd = async () => { await axios.post(`${API_BASE}/passwords`, newPwd); pwdDialogVisible.value = false; fetchPwds(); };
+                const deletePwd = async (id) => { await axios.delete(`${API_BASE}/passwords/${id}`); fetchPwds(); };
+
+                // --- Tools Logic ---
+                const toolInputs = reactive({ curl: '', timeBase: '', timeDays: 0, timeHours: 0, ts1: '', ts2: '', enc: '', json: '' });
+                const toolOutputs = reactive({ curl: '', time: '', ts1: '', ts2: '', enc: '', json: '' });
+
+                const runTool = async (endpoint, inputData, mode=null, params=null, outputKey=null) => {
+                    const key = outputKey || endpoint.replace('curl2py', 'curl');
+                    try {
+                        const res = await axios.post(`${API_BASE}/tools/${endpoint}`, { input_data: inputData || "", mode, params });
+                        if(res.data.error) ElementPlus.ElMessage.error('错误: ' + res.data.error);
+                        else {
+                            toolOutputs[key] = res.data.result;
+                            if (key === 'curl') {
+                                ElementPlus.ElMessage.success('转换成功');
+                                setTimeout(() => document.getElementById('curl-output')?.scrollIntoView({behavior:'smooth'}), 100);
+                            }
+                        }
+                    } catch (e) { ElementPlus.ElMessage.error('网络请求失败'); }
+                };
+                const runTimeCalc = () => runTool('time_calc', '', null, {base_time: toolInputs.timeBase, days: toolInputs.timeDays, hours: toolInputs.timeHours}, 'time');
+
+                // --- JSON Tool Logic ---
+                const jsonData = ref(null);
+                const jsonError = ref('');
+                const jsonSearch = ref('');
+                const expandAll = ref(true);
+                const isInputCollapsed = ref(false);
+                const isOutputCollapsed = ref(false);
+                const copyJsonResult = () => { if (jsonData.value) copyText(JSON.stringify(jsonData.value, null, 4)); else ElementPlus.ElMessage.warning('暂无结果'); };
+                const processJson = async () => {
+                    if (isOutputCollapsed.value) isOutputCollapsed.value = false;
+                    try {
+                        const res = await axios.post(`${API_BASE}/tools/json_format`, { input_data: toolInputs.json });
+                        if (res.data.error) { jsonError.value = res.data.error; jsonData.value = null; }
+                        else { jsonError.value = ''; jsonData.value = JSON.parse(res.data.result); }
+                    } catch (e) { jsonError.value = "网络错误"; }
+                };
+
+                // --- Hash Logic ---
+                const hashFile = ref(null);
+                const hashResult = ref(null);
+                const hashLoading = ref(false);
+                const handleHashFileChange = (uploadFile) => { hashFile.value = uploadFile.raw; hashResult.value = null; };
+                const calcFileHash = async () => {
+                    if (!hashFile.value) return;
+                    hashLoading.value = true;
+                    const formData = new FormData();
+                    formData.append('file', hashFile.value);
+                    try {
+                        const res = await axios.post(`${API_BASE}/tools/file_hash`, formData);
+                        if (res.data.error) ElementPlus.ElMessage.error(res.data.error);
+                        else { hashResult.value = res.data.result; ElementPlus.ElMessage.success('计算完成'); }
+                    } catch (e) { ElementPlus.ElMessage.error('失败'); } 
+                    finally { hashLoading.value = false; }
+                };
+
+                onMounted(() => { fetchTodos(); fetchPwds(); });
+
+                return {
+                    activeTab, copyText, formatTime,
+                    todoList, newTodo, addTodo, updateTodo, deleteTodo, renderMarkdown,
+                    pwdList, pwdDialogVisible, pwdSearch, filteredPwdList, newPwd, addPwd, deletePwd,
+                    toolInputs, toolOutputs, runTool, runTimeCalc, tsUnit1, tsUnit2,
+                    jsonData, jsonError, jsonSearch, expandAll, processJson, isInputCollapsed, isOutputCollapsed, copyJsonResult,
+                    hashFile, hashResult, hashLoading, handleHashFileChange, calcFileHash
+                };
+            }
+        };
+
+        const app = createApp(App);
+        app.use(ElementPlus);
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) { app.component(key, component); }
+        app.mount('#app');
+    </script>
+</body>
+</html>
